@@ -2,6 +2,12 @@
 
 個人向け Web 家計簿アプリ。収入・支出・予算・口座を Firestore に保存し、PC とスマホで同期できます。Next.js (App Router) と Firebase で構築しています。
 
+## 🚀 Live Demo
+
+**https://household-account-book-ggv4243x1-tsuguchis-projects.vercel.app**
+
+Vercel にデプロイされた本番環境です。サインアップして実際に利用できます。
+
 ## 主な機能
 
 | 要件 | 内容 |
