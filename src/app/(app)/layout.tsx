@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { describeAuthError, signOut } from "@/lib/auth";
+import { processRecurringDue } from "@/lib/recurring";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "ダッシュボード" },
   { href: "/transactions", label: "取引" },
   { href: "/budgets", label: "予算" },
+  { href: "/recurring", label: "定期" },
   { href: "/accounts", label: "口座" },
   { href: "/categories", label: "カテゴリ" },
   { href: "/data", label: "データ" },
@@ -25,6 +27,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       router.replace("/login");
     }
   }, [user, loading, router]);
+
+  const recurringRanRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    if (recurringRanRef.current === user.uid) return;
+    recurringRanRef.current = user.uid;
+    processRecurringDue(user.uid).catch((err) => {
+      console.error("processRecurringDue failed", err);
+    });
+  }, [user]);
 
   if (loading || !user) {
     return (
