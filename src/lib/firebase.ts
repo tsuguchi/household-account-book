@@ -11,8 +11,24 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey);
 
-export const auth: Auth = getAuth(app);
-export const db: Firestore = getFirestore(app);
-export default app;
+let cachedApp: FirebaseApp | null = null;
+let cachedAuth: Auth | null = null;
+let cachedDb: Firestore | null = null;
+
+function getFirebaseApp(): FirebaseApp {
+  if (cachedApp) return cachedApp;
+  cachedApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  return cachedApp;
+}
+
+export function getFirebaseAuth(): Auth {
+  if (!cachedAuth) cachedAuth = getAuth(getFirebaseApp());
+  return cachedAuth;
+}
+
+export function getFirebaseDb(): Firestore {
+  if (!cachedDb) cachedDb = getFirestore(getFirebaseApp());
+  return cachedDb;
+}
