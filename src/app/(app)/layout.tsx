@@ -9,6 +9,7 @@ import { describeAuthError, signOut } from "@/lib/auth";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "ダッシュボード" },
   { href: "/accounts", label: "口座" },
+  { href: "/categories", label: "カテゴリ" },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
