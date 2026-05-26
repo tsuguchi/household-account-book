@@ -9,6 +9,7 @@ import { describeAuthError, signOut } from "@/lib/auth";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "ダッシュボード" },
   { href: "/transactions", label: "取引" },
+  { href: "/budgets", label: "予算" },
   { href: "/accounts", label: "口座" },
   { href: "/categories", label: "カテゴリ" },
 ];

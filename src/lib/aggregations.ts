@@ -1,3 +1,4 @@
+import type { Budget } from "@/types/budget";
 import type { Category } from "@/types/category";
 import type { Transaction, TransactionKind } from "@/types/transaction";
 
@@ -45,4 +46,48 @@ export function breakdownByCategory(
     });
   }
   return items.sort((a, b) => b.total - a.total);
+}
+
+export type BudgetStatus = "ok" | "warning" | "over";
+
+export type BudgetConsumptionItem = {
+  budgetId: string;
+  categoryId: string;
+  categoryName: string;
+  color: string;
+  budget: number;
+  spent: number;
+  ratio: number;
+  status: BudgetStatus;
+};
+
+export const BUDGET_WARNING_RATIO = 0.8;
+
+export function budgetConsumption(
+  budgets: ReadonlyArray<Budget>,
+  transactions: ReadonlyArray<Transaction>,
+  categories: ReadonlyArray<Category>,
+): BudgetConsumptionItem[] {
+  const spentByCategory = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.kind !== "expense") continue;
+    spentByCategory.set(t.categoryId, (spentByCategory.get(t.categoryId) ?? 0) + t.amount);
+  }
+  return budgets.map((b) => {
+    const cat = categories.find((c) => c.id === b.categoryId);
+    const spent = spentByCategory.get(b.categoryId) ?? 0;
+    const ratio = b.amount > 0 ? spent / b.amount : 0;
+    const status: BudgetStatus =
+      ratio >= 1 ? "over" : ratio >= BUDGET_WARNING_RATIO ? "warning" : "ok";
+    return {
+      budgetId: b.id,
+      categoryId: b.categoryId,
+      categoryName: cat?.name ?? "（不明）",
+      color: cat?.color ?? "#9ca3af",
+      budget: b.amount,
+      spent,
+      ratio,
+      status,
+    };
+  });
 }

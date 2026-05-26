@@ -14,13 +14,17 @@ import {
   YAxis,
 } from "recharts";
 import { useAuth } from "@/contexts/AuthContext";
+import { subscribeBudgetsByMonth } from "@/lib/budgets";
 import { subscribeCategories } from "@/lib/categories";
 import { subscribeTransactionsByMonth } from "@/lib/transactions";
 import {
   breakdownByCategory,
+  budgetConsumption,
   summarize,
+  type BudgetConsumptionItem,
   type CategoryBreakdownItem,
 } from "@/lib/aggregations";
+import { toYearMonth, type Budget } from "@/types/budget";
 import type { Category } from "@/types/category";
 import type { Transaction } from "@/types/transaction";
 
@@ -33,6 +37,7 @@ export default function DashboardPage() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,6 +45,11 @@ export default function DashboardPage() {
     const unsub = subscribeCategories(user.uid, setCategories);
     return unsub;
   }, [user, configured]);
+
+  useEffect(() => {
+    if (!user || !configured) return;
+    return subscribeBudgetsByMonth(user.uid, toYearMonth(year, month), setBudgets);
+  }, [user, configured, year, month]);
 
   useEffect(() => {
     if (!user || !configured) {
@@ -62,6 +72,12 @@ export default function DashboardPage() {
     () => breakdownByCategory(transactions, categories, "income"),
     [transactions, categories],
   );
+  const consumption = useMemo(
+    () => budgetConsumption(budgets, transactions, categories),
+    [budgets, transactions, categories],
+  );
+  const overItems = consumption.filter((c) => c.status === "over");
+  const warningItems = consumption.filter((c) => c.status === "warning");
 
   if (!configured) {
     return (
@@ -79,6 +95,13 @@ export default function DashboardPage() {
           {year}年 {String(month).padStart(2, "0")}月
         </p>
       </div>
+
+      {overItems.length > 0 && (
+        <BudgetAlertBanner tone="over" items={overItems} />
+      )}
+      {overItems.length === 0 && warningItems.length > 0 && (
+        <BudgetAlertBanner tone="warning" items={warningItems} />
+      )}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <SummaryCard label="今月の収入" amount={summary.income} tone="income" />
@@ -123,7 +146,94 @@ export default function DashboardPage() {
           )}
         </div>
       )}
+
+      {consumption.length > 0 && (
+        <div className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-base font-semibold">予算消化率</h2>
+            <Link
+              href="/budgets"
+              className="text-xs text-zinc-500 underline-offset-2 hover:underline"
+            >
+              予算を編集
+            </Link>
+          </div>
+          <ul className="mt-3 space-y-3">
+            {consumption.map((item) => (
+              <BudgetRow key={item.budgetId} item={item} />
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
+  );
+}
+
+function BudgetAlertBanner({
+  tone,
+  items,
+}: {
+  tone: "over" | "warning";
+  items: BudgetConsumptionItem[];
+}) {
+  const containerClass =
+    tone === "over"
+      ? "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300"
+      : "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300";
+  const headline =
+    tone === "over"
+      ? `予算超過: ${items.length}件`
+      : `予算 80% 到達: ${items.length}件`;
+  return (
+    <div className={`mt-4 rounded-lg border p-4 text-sm ${containerClass}`} role="alert">
+      <p className="font-semibold">{headline}</p>
+      <ul className="mt-1 space-y-0.5 text-sm">
+        {items.map((item) => (
+          <li key={item.budgetId}>
+            {item.categoryName} — ¥{item.spent.toLocaleString("ja-JP")} / ¥
+            {item.budget.toLocaleString("ja-JP")} ({Math.round(item.ratio * 100)}%)
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function BudgetRow({ item }: { item: BudgetConsumptionItem }) {
+  const percent = Math.min(item.ratio * 100, 100);
+  const barColor =
+    item.status === "over"
+      ? "bg-rose-500"
+      : item.status === "warning"
+        ? "bg-amber-500"
+        : "bg-emerald-500";
+  const ratioColor =
+    item.status === "over"
+      ? "text-rose-600 dark:text-rose-400"
+      : item.status === "warning"
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-zinc-500";
+  return (
+    <li>
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            aria-hidden
+            className="h-3 w-3 shrink-0 rounded-full"
+            style={{ backgroundColor: item.color }}
+          />
+          <span className="truncate">{item.categoryName}</span>
+        </div>
+        <span className={`shrink-0 ${ratioColor}`}>
+          ¥{item.spent.toLocaleString("ja-JP")} /{" "}
+          <span className="text-zinc-500">¥{item.budget.toLocaleString("ja-JP")}</span>{" "}
+          <span className="ml-1 font-medium">{Math.round(item.ratio * 100)}%</span>
+        </span>
+      </div>
+      <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+        <div className={`h-full transition-all ${barColor}`} style={{ width: `${percent}%` }} />
+      </div>
+    </li>
   );
 }
 
