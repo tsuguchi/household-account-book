@@ -16,14 +16,14 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
   if (loading || user) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-zinc-500">
+      <div className="grid min-h-screen place-items-center text-sm text-zinc-500">
         読み込み中…
       </div>
     );
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center px-4 py-12">
+    <div className="grid min-h-screen place-items-center px-4 py-12">
       <div className="w-full max-w-sm">{children}</div>
     </div>
   );
