@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// 個人向け家計簿アプリのセキュリティルール。
+// users/{userId} 配下のドキュメントは、本人 (request.auth.uid == userId) のみ読み書き可。
+// それ以外のパスは全拒否。
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
