@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/budgets", label: "予算" },
   { href: "/accounts", label: "口座" },
   { href: "/categories", label: "カテゴリ" },
+  { href: "/data", label: "データ" },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
